@@ -1,0 +1,1527 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ESG Supply Chain Due Diligence — Portfolio Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<style>
+:root {
+  --bg: #080c0a;
+  --surface: #0e1410;
+  --surface2: #131a15;
+  --surface3: #182019;
+  --border: #1c2b20;
+  --border2: #253528;
+  --green: #00e676;
+  --green-dim: #00a152;
+  --green-glow: rgba(0,230,118,0.15);
+  --amber: #ffab00;
+  --red: #ff3d3d;
+  --blue: #29b6f6;
+  --purple: #ce93d8;
+  --text: #deeee5;
+  --muted: #5a7a63;
+  --muted2: #3d5443;
+  --font-h: 'Syne', sans-serif;
+  --font-m: 'DM Mono', monospace;
+  --radius: 6px;
+  --transition: 0.2s ease;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+html{scroll-behavior:smooth;}
+body{
+  background:var(--bg);
+  color:var(--text);
+  font-family:var(--font-m);
+  font-size:12px;
+  line-height:1.6;
+  min-height:100vh;
+  overflow-x:hidden;
+}
+body::before{
+  content:'';
+  position:fixed;inset:0;
+  background-image:
+    linear-gradient(rgba(0,230,118,0.025) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(0,230,118,0.025) 1px,transparent 1px);
+  background-size:48px 48px;
+  pointer-events:none;z-index:0;
+}
+/* NAV */
+nav{
+  position:sticky;top:0;z-index:100;
+  background:rgba(8,12,10,0.92);
+  border-bottom:1px solid var(--border);
+  backdrop-filter:blur(12px);
+  display:flex;align-items:center;justify-content:space-between;
+  padding:0 28px;height:52px;
+}
+.nav-brand{
+  font-family:var(--font-h);font-size:14px;font-weight:800;
+  color:var(--text);letter-spacing:-0.3px;
+  display:flex;align-items:center;gap:8px;
+}
+.nav-brand span{color:var(--green);}
+.nav-dot{width:6px;height:6px;background:var(--green);border-radius:50%;animation:blink 2s infinite;}
+@keyframes blink{0%,100%{opacity:1;}50%{opacity:0.2;}}
+.nav-tabs{display:flex;gap:2px;}
+.nav-tab{
+  background:none;border:none;
+  font-family:var(--font-m);font-size:11px;
+  color:var(--muted);letter-spacing:0.08em;
+  padding:6px 12px;cursor:pointer;
+  border-radius:var(--radius);
+  transition:all var(--transition);
+}
+.nav-tab:hover{color:var(--text);background:var(--surface2);}
+.nav-tab.active{color:var(--green);background:rgba(0,230,118,0.08);border:1px solid rgba(0,230,118,0.15);}
+.nav-right{display:flex;align-items:center;gap:10px;}
+.live-pill{
+  display:flex;align-items:center;gap:5px;
+  background:rgba(0,230,118,0.07);
+  border:1px solid rgba(0,230,118,0.18);
+  border-radius:20px;padding:3px 10px;
+  font-size:10px;color:var(--green);letter-spacing:0.1em;
+}
+.ts{font-size:10px;color:var(--muted);}
+
+/* PAGES */
+.page{display:none;position:relative;z-index:1;padding:24px 28px;max-width:1440px;margin:0 auto;}
+.page.active{display:block;}
+
+/* ===== PAGE 1: DASHBOARD ===== */
+.dash-header{margin-bottom:24px;}
+.dash-header h1{
+  font-family:var(--font-h);font-size:26px;font-weight:800;
+  line-height:1.1;letter-spacing:-0.5px;
+}
+.dash-header h1 em{color:var(--green);font-style:normal;}
+.dash-header p{color:var(--muted);font-size:11px;margin-top:5px;letter-spacing:0.05em;}
+
+/* KPI */
+.kpi-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:20px;}
+.kpi{
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:var(--radius);
+  padding:14px 16px;
+  position:relative;overflow:hidden;
+  cursor:default;
+  transition:border-color var(--transition);
+}
+.kpi:hover{border-color:var(--border2);}
+.kpi::after{content:'';position:absolute;top:0;left:0;right:0;height:2px;}
+.kpi.c-green::after{background:var(--green);}
+.kpi.c-amber::after{background:var(--amber);}
+.kpi.c-red::after{background:var(--red);}
+.kpi.c-blue::after{background:var(--blue);}
+.kpi.c-purple::after{background:var(--purple);}
+.kpi-lbl{font-size:9px;letter-spacing:0.14em;text-transform:uppercase;color:var(--muted);margin-bottom:6px;}
+.kpi-val{font-family:var(--font-h);font-size:32px;font-weight:800;line-height:1;}
+.kpi.c-green .kpi-val{color:var(--green);}
+.kpi.c-amber .kpi-val{color:var(--amber);}
+.kpi.c-red .kpi-val{color:var(--red);}
+.kpi.c-blue .kpi-val{color:var(--blue);}
+.kpi.c-purple .kpi-val{color:var(--purple);}
+.kpi-sub{font-size:10px;color:var(--muted);margin-top:4px;}
+
+/* OECD */
+.oecd-panel{
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:var(--radius);margin-bottom:20px;overflow:hidden;
+}
+.oecd-steps{display:flex;}
+.oecd-step{
+  flex:1;padding:12px 14px;cursor:pointer;
+  border-right:1px solid var(--border);
+  border-bottom:3px solid transparent;
+  transition:all var(--transition);
+  position:relative;
+}
+.oecd-step:last-child{border-right:none;}
+.oecd-step:hover{background:var(--surface2);}
+.oecd-step.active{
+  background:rgba(0,230,118,0.05);
+  border-bottom-color:var(--green);
+}
+.step-n{
+  font-family:var(--font-h);font-size:20px;font-weight:800;
+  color:var(--muted2);line-height:1;margin-bottom:3px;
+  transition:color var(--transition);
+}
+.oecd-step.active .step-n{color:var(--green);}
+.step-lbl{font-size:9px;color:var(--muted);line-height:1.4;letter-spacing:0.02em;}
+.oecd-step.active .step-lbl{color:var(--text);}
+
+.oecd-content{
+  padding:18px 20px;
+  border-top:1px solid var(--border);
+  display:grid;grid-template-columns:1fr 220px;gap:20px;
+}
+.oecd-content h3{
+  font-family:var(--font-h);font-size:14px;font-weight:700;
+  color:var(--green);margin-bottom:6px;
+}
+.oecd-content p{font-size:11px;color:var(--muted);line-height:1.7;margin-bottom:10px;}
+.oecd-actions{display:flex;flex-direction:column;gap:5px;}
+.oecd-action{
+  display:flex;align-items:flex-start;gap:7px;
+  font-size:11px;color:var(--text);
+}
+.oecd-action::before{content:'→';color:var(--green);flex-shrink:0;font-size:10px;margin-top:2px;}
+.oecd-kpis{display:flex;flex-direction:column;gap:8px;}
+.oecd-kpi-row{
+  background:var(--surface2);border:1px solid var(--border);
+  border-radius:4px;padding:8px 12px;
+  display:flex;justify-content:space-between;align-items:center;
+}
+.oecd-kpi-label{font-size:10px;color:var(--muted);}
+.oecd-kpi-val{font-family:var(--font-h);font-size:16px;font-weight:700;}
+
+/* MAIN GRID */
+.dash-grid{display:grid;grid-template-columns:1fr 320px;gap:16px;margin-bottom:16px;}
+
+/* PANEL */
+.panel{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;}
+.ph{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:12px 16px;border-bottom:1px solid var(--border);
+}
+.ph-title{font-family:var(--font-h);font-size:11px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;}
+.ph-actions{display:flex;gap:5px;}
+.btn-sm{
+  background:var(--surface2);border:1px solid var(--border);
+  border-radius:3px;color:var(--muted);
+  font-family:var(--font-m);font-size:9px;
+  padding:3px 8px;cursor:pointer;
+  letter-spacing:0.08em;transition:all 0.15s;
+}
+.btn-sm:hover,.btn-sm.active{
+  background:rgba(0,230,118,0.08);
+  border-color:var(--green-dim);color:var(--green);
+}
+.btn-primary{
+  background:rgba(0,230,118,0.12);
+  border:1px solid var(--green-dim);
+  border-radius:4px;color:var(--green);
+  font-family:var(--font-m);font-size:10px;
+  padding:5px 12px;cursor:pointer;letter-spacing:0.06em;
+  transition:all var(--transition);
+}
+.btn-primary:hover{background:rgba(0,230,118,0.2);}
+
+/* TABLE */
+table{width:100%;border-collapse:collapse;}
+thead tr{background:var(--surface2);}
+th{
+  text-align:left;padding:9px 14px;
+  font-size:9px;letter-spacing:0.12em;text-transform:uppercase;
+  color:var(--muted);font-weight:400;
+  border-bottom:1px solid var(--border);cursor:pointer;
+}
+th:hover{color:var(--text);}
+td{padding:10px 14px;border-bottom:1px solid rgba(28,43,32,0.7);vertical-align:middle;}
+tr:last-child td{border-bottom:none;}
+tbody tr{cursor:pointer;transition:background 0.12s;}
+tbody tr:hover{background:rgba(0,230,118,0.025);}
+tbody tr.sel{background:rgba(0,230,118,0.05);}
+.sup-name{font-family:var(--font-h);font-weight:600;font-size:12px;}
+.sup-meta{font-size:9px;color:var(--muted);margin-top:1px;}
+.risk-tag{
+  display:inline-flex;align-items:center;
+  border-radius:3px;padding:2px 6px;
+  font-size:9px;font-weight:500;letter-spacing:0.08em;text-transform:uppercase;
+}
+.risk-tag.low{background:rgba(0,230,118,0.08);color:var(--green);border:1px solid rgba(0,230,118,0.2);}
+.risk-tag.medium{background:rgba(255,171,0,0.08);color:var(--amber);border:1px solid rgba(255,171,0,0.2);}
+.risk-tag.high{background:rgba(255,61,61,0.08);color:var(--red);border:1px solid rgba(255,61,61,0.2);}
+.sbar{display:flex;align-items:center;gap:7px;}
+.strack{width:52px;height:3px;background:var(--border2);border-radius:2px;overflow:hidden;}
+.sfill{height:100%;border-radius:2px;transition:width 0.5s;}
+.sdot{width:7px;height:7px;border-radius:50%;display:inline-block;flex-shrink:0;}
+.sdot.active{background:var(--green);box-shadow:0 0 5px var(--green);}
+.sdot.review{background:var(--amber);}
+.sdot.flagged{background:var(--red);animation:blink 1.5s infinite;}
+
+/* RIGHT COLUMN */
+.right-col{display:flex;flex-direction:column;gap:12px;}
+.detail-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px;}
+.dc-title{font-size:9px;letter-spacing:0.13em;text-transform:uppercase;color:var(--muted);margin-bottom:10px;}
+
+/* ESG RINGS */
+.rings{display:flex;justify-content:space-around;align-items:center;margin-bottom:8px;}
+.ring-item{text-align:center;}
+.ring-lbl{font-size:9px;color:var(--muted);letter-spacing:0.05em;margin-top:3px;}
+
+/* CAP LIST */
+.cap-list{display:flex;flex-direction:column;gap:6px;}
+.cap-item{
+  display:flex;gap:8px;align-items:flex-start;
+  padding:7px 9px;background:var(--surface2);
+  border:1px solid var(--border);border-radius:4px;
+  transition:border-color 0.15s;
+}
+.cap-item:hover{border-color:var(--border2);}
+.cap-ico{
+  width:22px;height:22px;border-radius:3px;
+  display:flex;align-items:center;justify-content:center;
+  font-size:11px;flex-shrink:0;
+}
+.cap-ico.warn{background:rgba(255,171,0,0.12);}
+.cap-ico.danger{background:rgba(255,61,61,0.12);}
+.cap-ico.ok{background:rgba(0,230,118,0.08);}
+.cap-text{font-size:10px;color:var(--text);line-height:1.4;}
+.cap-sub{font-size:9px;color:var(--muted);margin-top:1px;}
+
+/* COMPLIANCE */
+.comp-bar{height:6px;background:var(--surface2);border-radius:3px;overflow:hidden;margin:6px 0;}
+.comp-fill{height:100%;border-radius:3px;background:linear-gradient(90deg,var(--red) 0%,var(--amber) 45%,var(--green) 75%);}
+.comp-row{display:flex;justify-content:space-between;align-items:center;font-size:10px;padding:3px 0;}
+.comp-key{color:var(--muted);}
+
+/* BOTTOM */
+.bottom-row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;}
+.chart-wrap{padding:14px;height:150px;position:relative;}
+
+/* REGION BARS */
+.reg-list{padding:10px 14px;display:flex;flex-direction:column;gap:7px;}
+.reg-row{}
+.reg-hdr{display:flex;justify-content:space-between;font-size:10px;margin-bottom:3px;}
+.reg-name{color:var(--text);}
+.reg-stats{color:var(--muted);}
+.reg-track{height:4px;background:var(--border2);border-radius:2px;overflow:hidden;}
+.reg-fill{height:100%;border-radius:2px;}
+
+/* REG TRACKER */
+.reg-tracker{padding:2px 14px;}
+.rt-item{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:9px 0;border-bottom:1px solid var(--border);
+}
+.rt-item:last-child{border-bottom:none;}
+.rt-name{font-size:11px;font-weight:500;}
+.rt-date{font-size:9px;color:var(--muted);margin-top:1px;}
+.rt-badge{font-size:9px;padding:2px 7px;border-radius:3px;letter-spacing:0.06em;}
+.rt-badge.enacted{background:rgba(0,230,118,0.08);color:var(--green);}
+.rt-badge.incoming{background:rgba(255,171,0,0.08);color:var(--amber);}
+.rt-badge.proposed{background:rgba(41,182,246,0.08);color:var(--blue);}
+
+/* ===== PAGE 2: SUPPLIER DETAIL ===== */
+.sup-header{
+  display:flex;align-items:flex-start;justify-content:space-between;
+  margin-bottom:20px;padding-bottom:18px;border-bottom:1px solid var(--border);
+}
+.sup-header-left h2{font-family:var(--font-h);font-size:22px;font-weight:800;}
+.sup-header-left p{color:var(--muted);font-size:11px;margin-top:4px;}
+.sup-detail-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin-bottom:16px;}
+.sd-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px;}
+.sd-title{font-size:9px;letter-spacing:0.13em;text-transform:uppercase;color:var(--muted);margin-bottom:12px;}
+.timeline{display:flex;flex-direction:column;gap:0;}
+.tl-item{display:flex;gap:10px;position:relative;padding-bottom:14px;}
+.tl-item:last-child{padding-bottom:0;}
+.tl-left{display:flex;flex-direction:column;align-items:center;flex-shrink:0;}
+.tl-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;margin-top:3px;}
+.tl-line{width:1px;flex:1;background:var(--border);margin-top:3px;}
+.tl-item:last-child .tl-line{display:none;}
+.tl-content{flex:1;}
+.tl-event{font-size:11px;color:var(--text);}
+.tl-date{font-size:9px;color:var(--muted);}
+.score-history{display:flex;flex-direction:column;gap:6px;}
+.sh-row{display:flex;align-items:center;gap:8px;font-size:10px;}
+.sh-date{color:var(--muted);width:55px;flex-shrink:0;}
+.sh-track{flex:1;height:4px;background:var(--border2);border-radius:2px;overflow:hidden;}
+.sh-fill{height:100%;border-radius:2px;}
+.sh-val{color:var(--text);width:25px;text-align:right;flex-shrink:0;}
+.cap-full{display:flex;flex-direction:column;gap:8px;}
+.cap-card{
+  background:var(--surface2);border:1px solid var(--border);
+  border-radius:4px;padding:10px 12px;
+}
+.cap-card-hdr{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:5px;}
+.cap-card-title{font-size:11px;font-weight:500;color:var(--text);}
+.cap-prog-bar{height:3px;background:var(--border2);border-radius:2px;overflow:hidden;margin-top:6px;}
+.cap-prog-fill{height:100%;border-radius:2px;background:var(--amber);}
+
+/* ===== PAGE 3: ONBOARDING ===== */
+.onboard-wrap{max-width:900px;}
+.onboard-wrap h2{font-family:var(--font-h);font-size:22px;font-weight:800;margin-bottom:6px;}
+.onboard-wrap>p{color:var(--muted);font-size:11px;margin-bottom:24px;}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:20px;}
+.form-group{display:flex;flex-direction:column;gap:5px;}
+.form-group.full{grid-column:1/-1;}
+.form-label{font-size:10px;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);}
+.form-input,.form-select{
+  background:var(--surface2);
+  border:1px solid var(--border);
+  border-radius:4px;color:var(--text);
+  font-family:var(--font-m);font-size:12px;
+  padding:8px 11px;outline:none;
+  transition:border-color var(--transition);
+}
+.form-input:focus,.form-select:focus{border-color:var(--green-dim);}
+.form-select option{background:var(--surface2);}
+.risk-result{
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:var(--radius);padding:20px;margin-top:20px;
+  display:none;
+}
+.risk-result.show{display:block;animation:fadeUp 0.4s ease;}
+.rr-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:14px 0;}
+.rr-card{
+  background:var(--surface2);border:1px solid var(--border);
+  border-radius:4px;padding:12px;text-align:center;
+}
+.rr-val{font-family:var(--font-h);font-size:28px;font-weight:800;line-height:1;}
+.rr-lbl{font-size:9px;color:var(--muted);letter-spacing:0.08em;margin-top:4px;}
+.rr-flags{display:flex;flex-direction:column;gap:5px;margin-top:12px;}
+.rr-flag{
+  display:flex;align-items:center;gap:8px;
+  padding:6px 10px;border-radius:3px;font-size:11px;
+}
+.rr-flag.red{background:rgba(255,61,61,0.08);color:var(--red);border:1px solid rgba(255,61,61,0.15);}
+.rr-flag.amber{background:rgba(255,171,0,0.08);color:var(--amber);border:1px solid rgba(255,171,0,0.15);}
+.rr-flag.green{background:rgba(0,230,118,0.05);color:var(--green);border:1px solid rgba(0,230,118,0.15);}
+
+/* ===== PAGE 4: AUDIT ===== */
+.audit-wrap h2{font-family:var(--font-h);font-size:22px;font-weight:800;margin-bottom:6px;}
+.audit-wrap>p{color:var(--muted);font-size:11px;margin-bottom:24px;}
+.audit-score-big{
+  display:flex;align-items:center;gap:24px;
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:var(--radius);padding:20px 24px;margin-bottom:20px;
+}
+.audit-circle{
+  width:90px;height:90px;flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;
+  position:relative;
+}
+.audit-pct{font-family:var(--font-h);font-size:24px;font-weight:800;color:var(--green);}
+.audit-info h3{font-family:var(--font-h);font-size:16px;font-weight:700;margin-bottom:4px;}
+.audit-info p{font-size:11px;color:var(--muted);line-height:1.6;}
+.audit-sections{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+.audit-section{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;}
+.audit-sec-hdr{
+  padding:10px 14px;border-bottom:1px solid var(--border);
+  display:flex;align-items:center;justify-content:space-between;
+}
+.audit-sec-title{font-family:var(--font-h);font-size:11px;font-weight:700;}
+.audit-sec-score{font-family:var(--font-h);font-size:13px;font-weight:700;}
+.audit-items{padding:10px 14px;display:flex;flex-direction:column;gap:7px;}
+.audit-item{display:flex;align-items:flex-start;gap:8px;font-size:11px;}
+.audit-chk{
+  width:16px;height:16px;border-radius:3px;
+  display:flex;align-items:center;justify-content:center;
+  flex-shrink:0;font-size:9px;margin-top:1px;
+}
+.audit-chk.done{background:rgba(0,230,118,0.12);color:var(--green);}
+.audit-chk.partial{background:rgba(255,171,0,0.12);color:var(--amber);}
+.audit-chk.missing{background:rgba(255,61,61,0.1);color:var(--red);}
+.audit-item-text{color:var(--text);flex:1;line-height:1.5;}
+.audit-item-note{font-size:9px;color:var(--muted);}
+
+/* ===== PAGE 5: EXPORT ===== */
+.export-wrap h2{font-family:var(--font-h);font-size:22px;font-weight:800;margin-bottom:6px;}
+.export-wrap>p{color:var(--muted);font-size:11px;margin-bottom:24px;}
+.export-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:20px;}
+.export-card{
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:var(--radius);padding:18px;cursor:pointer;
+  transition:all var(--transition);
+}
+.export-card:hover{border-color:var(--green-dim);background:rgba(0,230,118,0.03);}
+.export-card h3{font-family:var(--font-h);font-size:14px;font-weight:700;margin-bottom:6px;}
+.export-card p{font-size:11px;color:var(--muted);line-height:1.6;margin-bottom:14px;}
+.export-icon{font-size:24px;margin-bottom:10px;}
+#pdfPreview{
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:var(--radius);padding:24px;
+  font-family:var(--font-m);display:none;
+}
+#pdfPreview.show{display:block;animation:fadeUp 0.3s ease;}
+.pdf-header{border-bottom:2px solid var(--green);padding-bottom:14px;margin-bottom:16px;}
+.pdf-header h2{font-family:var(--font-h);font-size:18px;color:var(--green);}
+.pdf-header p{font-size:11px;color:var(--muted);margin-top:3px;}
+.pdf-section{margin-bottom:16px;}
+.pdf-section h3{font-family:var(--font-h);font-size:12px;font-weight:700;color:var(--text);margin-bottom:8px;letter-spacing:0.05em;text-transform:uppercase;}
+.pdf-table{width:100%;border-collapse:collapse;font-size:11px;}
+.pdf-table th{text-align:left;padding:6px 10px;background:var(--surface2);color:var(--muted);font-size:9px;letter-spacing:0.1em;text-transform:uppercase;}
+.pdf-table td{padding:6px 10px;border-bottom:1px solid var(--border);}
+
+/* ANIMATIONS */
+@keyframes fadeUp{
+  from{opacity:0;transform:translateY(10px);}
+  to{opacity:1;transform:translateY(0);}
+}
+.kpi{animation:fadeUp 0.4s ease both;}
+.kpi:nth-child(1){animation-delay:.04s;}
+.kpi:nth-child(2){animation-delay:.08s;}
+.kpi:nth-child(3){animation-delay:.12s;}
+.kpi:nth-child(4){animation-delay:.16s;}
+.kpi:nth-child(5){animation-delay:.20s;}
+
+/* MAP placeholder */
+.geo-map{
+  background:var(--surface2);border-radius:4px;
+  display:flex;align-items:center;justify-content:center;
+  color:var(--muted);font-size:11px;
+  position:relative;overflow:hidden;
+  min-height:140px;
+}
+.geo-map svg{width:100%;opacity:0.6;}
+.map-dot{
+  position:absolute;
+  width:8px;height:8px;border-radius:50%;
+  transform:translate(-50%,-50%);
+  cursor:pointer;
+}
+.map-dot::after{
+  content:'';position:absolute;inset:-4px;
+  border-radius:50%;border:1px solid currentColor;
+  animation:ripple 2s infinite;
+}
+@keyframes ripple{
+  0%{transform:scale(1);opacity:0.6;}
+  100%{transform:scale(2.5);opacity:0;}
+}
+
+/* TOOLTIP */
+.tooltip{
+  position:fixed;background:var(--surface);
+  border:1px solid var(--green-dim);border-radius:4px;
+  padding:6px 10px;font-size:10px;
+  pointer-events:none;opacity:0;
+  transition:opacity 0.15s;z-index:200;
+}
+
+@media(max-width:1000px){
+  .kpi-grid{grid-template-columns:repeat(3,1fr);}
+  .dash-grid{grid-template-columns:1fr;}
+  .bottom-row{grid-template-columns:1fr;}
+  .oecd-steps{flex-wrap:wrap;}
+  .oecd-content{grid-template-columns:1fr;}
+  .sup-detail-grid{grid-template-columns:1fr;}
+  .audit-sections{grid-template-columns:1fr;}
+  .export-grid{grid-template-columns:1fr;}
+  .form-grid{grid-template-columns:1fr;}
+  .form-group.full{grid-column:1;}
+}
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <div class="nav-brand"><span class="nav-dot"></span>ESG<span>Due Diligence</span></div>
+  <div class="nav-tabs">
+    <button class="nav-tab active" onclick="showPage('dashboard',this)">Dashboard</button>
+    <button class="nav-tab" onclick="showPage('supplier',this)">Supplier Detail</button>
+    <button class="nav-tab" onclick="showPage('onboarding',this)">Onboarding Simulator</button>
+    <button class="nav-tab" onclick="showPage('audit',this)">Audit Readiness</button>
+    <button class="nav-tab" onclick="showPage('export',this)">Export / Report</button>
+  </div>
+  <div class="nav-right">
+    <div class="live-pill"><span class="nav-dot"></span>LIVE</div>
+    <span class="ts" id="ts"></span>
+  </div>
+</nav>
+
+<!-- ========== PAGE 1: DASHBOARD ========== -->
+<div class="page active" id="page-dashboard">
+  <div class="dash-header">
+    <h1>Supply Chain <em>ESG</em> Due Diligence</h1>
+    <p>OECD 6-STEP FRAMEWORK · CSDDD READINESS · SUPPLIER LIFECYCLE MANAGEMENT · Q1 2026</p>
+  </div>
+
+  <!-- KPIs -->
+  <div class="kpi-grid">
+    <div class="kpi c-green">
+      <div class="kpi-lbl">Total Suppliers</div>
+      <div class="kpi-val">247</div>
+      <div class="kpi-sub">↑ 12 onboarded Q1</div>
+    </div>
+    <div class="kpi c-amber">
+      <div class="kpi-lbl">High Risk</div>
+      <div class="kpi-val">18</div>
+      <div class="kpi-sub">↑ 3 new flags this month</div>
+    </div>
+    <div class="kpi c-red">
+      <div class="kpi-lbl">Active CAPs</div>
+      <div class="kpi-val">9</div>
+      <div class="kpi-sub">Corrective action plans</div>
+    </div>
+    <div class="kpi c-blue">
+      <div class="kpi-lbl">CSDDD Readiness</div>
+      <div class="kpi-val">74%</div>
+      <div class="kpi-sub">↑ 8% from last quarter</div>
+    </div>
+    <div class="kpi c-purple">
+      <div class="kpi-lbl">Avg ESG Score</div>
+      <div class="kpi-val">68</div>
+      <div class="kpi-sub">↑ 4pts year-on-year</div>
+    </div>
+  </div>
+
+  <!-- OECD -->
+  <div class="oecd-panel">
+    <div class="oecd-steps" id="oecdSteps">
+      <div class="oecd-step active" onclick="setStep(0,this)">
+        <div class="step-n">01</div>
+        <div class="step-lbl">Embed RBC into policies</div>
+      </div>
+      <div class="oecd-step" onclick="setStep(1,this)">
+        <div class="step-n">02</div>
+        <div class="step-lbl">Identify adverse impacts</div>
+      </div>
+      <div class="oecd-step" onclick="setStep(2,this)">
+        <div class="step-n">03</div>
+        <div class="step-lbl">Cease, prevent & mitigate</div>
+      </div>
+      <div class="oecd-step" onclick="setStep(3,this)">
+        <div class="step-n">04</div>
+        <div class="step-lbl">Track implementation</div>
+      </div>
+      <div class="oecd-step" onclick="setStep(4,this)">
+        <div class="step-n">05</div>
+        <div class="step-lbl">Communicate impacts</div>
+      </div>
+      <div class="oecd-step" onclick="setStep(5,this)">
+        <div class="step-n">06</div>
+        <div class="step-lbl">Provide remediation</div>
+      </div>
+    </div>
+    <div class="oecd-content" id="oecdContent"></div>
+  </div>
+
+  <!-- MAIN GRID -->
+  <div class="dash-grid">
+    <!-- TABLE -->
+    <div class="panel">
+      <div class="ph">
+        <span class="ph-title">Supplier Risk Register</span>
+        <div class="ph-actions">
+          <button class="btn-sm active" onclick="filterTbl('all',this)">All</button>
+          <button class="btn-sm" onclick="filterTbl('high',this)">High Risk</button>
+          <button class="btn-sm" onclick="filterTbl('medium',this)">Medium</button>
+          <button class="btn-sm" onclick="filterTbl('cap',this)">CAP Active</button>
+        </div>
+      </div>
+      <table>
+        <thead>
+          <tr>
+            <th onclick="sortTbl('name')">Supplier ↕</th>
+            <th onclick="sortTbl('region')">Region / Tier</th>
+            <th onclick="sortTbl('score')">ESG Score ↕</th>
+            <th onclick="sortTbl('risk')">Risk</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody id="tblBody"></tbody>
+      </table>
+    </div>
+    <!-- RIGHT -->
+    <div class="right-col">
+      <div class="detail-card">
+        <div class="dc-title">ESG Pillar Breakdown</div>
+        <div class="rings" id="rings"></div>
+        <div style="font-size:10px;color:var(--muted);text-align:center;" id="selName">← Click a supplier</div>
+      </div>
+      <div class="detail-card">
+        <div class="dc-title">Active Corrective Action Plans</div>
+        <div class="cap-list">
+          <div class="cap-item">
+            <div class="cap-ico danger">⚠</div>
+            <div><div class="cap-text">Guangdong Metal Works — Labor Standards</div><div class="cap-sub">Due in 30 days · Step 3 Mitigation</div></div>
+          </div>
+          <div class="cap-item">
+            <div class="cap-ico warn">◑</div>
+            <div><div class="cap-text">Tata Steel India — Environmental Discharge</div><div class="cap-sub">Due in 60 days · Audit scheduled</div></div>
+          </div>
+          <div class="cap-item">
+            <div class="cap-ico warn">◑</div>
+            <div><div class="cap-text">Meridian Plastics — REACH Compliance</div><div class="cap-sub">Due in 90 days · Docs pending</div></div>
+          </div>
+          <div class="cap-item">
+            <div class="cap-ico ok">✓</div>
+            <div><div class="cap-text">Shenzen Electronics — Data Privacy</div><div class="cap-sub">Closed 15 days ago · Verified</div></div>
+          </div>
+        </div>
+      </div>
+      <div class="detail-card">
+        <div class="dc-title">CSDDD Compliance Readiness</div>
+        <div class="comp-bar"><div class="comp-fill" style="width:74%"></div></div>
+        <div style="display:flex;justify-content:space-between;font-size:9px;color:var(--muted);margin-bottom:8px;"><span>0%</span><span style="color:var(--green);font-weight:600">74%</span><span>100%</span></div>
+        <div class="comp-row"><span class="comp-key">Human rights DD policy</span><span style="color:var(--green)">✓</span></div>
+        <div class="comp-row"><span class="comp-key">Grievance mechanism</span><span style="color:var(--green)">✓</span></div>
+        <div class="comp-row"><span class="comp-key">Tier-2 supplier mapping</span><span style="color:var(--amber)">⊘ Partial</span></div>
+        <div class="comp-row"><span class="comp-key">Climate transition plan</span><span style="color:var(--red)">✗</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- BOTTOM -->
+  <div class="bottom-row">
+    <!-- TREND CHART -->
+    <div class="panel">
+      <div class="ph"><span class="ph-title">ESG Score Trend (6M)</span></div>
+      <div class="chart-wrap"><canvas id="trendChart"></canvas></div>
+    </div>
+    <!-- REGION -->
+    <div class="panel">
+      <div class="ph"><span class="ph-title">Risk by Region</span></div>
+      <div class="reg-list" id="regionList"></div>
+    </div>
+    <!-- REGULATIONS -->
+    <div class="panel">
+      <div class="ph"><span class="ph-title">Regulatory Tracker</span></div>
+      <div class="reg-tracker">
+        <div class="rt-item"><div><div class="rt-name">EU CSDDD</div><div class="rt-date">Enforcement: 2027</div></div><span class="rt-badge incoming">INCOMING</span></div>
+        <div class="rt-item"><div><div class="rt-name">EU CSRD</div><div class="rt-date">FY2024+ reporting</div></div><span class="rt-badge enacted">ENACTED</span></div>
+        <div class="rt-item"><div><div class="rt-name">Forced Labour Reg.</div><div class="rt-date">Prohibition from 2027</div></div><span class="rt-badge incoming">INCOMING</span></div>
+        <div class="rt-item"><div><div class="rt-name">German LkSG</div><div class="rt-date">Active since 2023</div></div><span class="rt-badge enacted">ENACTED</span></div>
+        <div class="rt-item"><div><div class="rt-name">EUDR (Deforestation)</div><div class="rt-date">2025 enforcement</div></div><span class="rt-badge proposed">MONITORING</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ========== PAGE 2: SUPPLIER DETAIL ========== -->
+<div class="page" id="page-supplier">
+  <div class="sup-header">
+    <div class="sup-header-left">
+      <h2 id="supDetailName">Guangdong Metal Works</h2>
+      <p id="supDetailMeta">China · Tier 2 · Manufacturing · High Risk · CAP Active</p>
+    </div>
+    <div style="display:flex;gap:8px;align-items:center;">
+      <select class="form-select" onchange="loadSupplier(this.value)" id="supSelect" style="min-width:200px;"></select>
+    </div>
+  </div>
+  <div class="sup-detail-grid">
+    <!-- ESG HISTORY CHART -->
+    <div class="sd-card" style="grid-column:1/3;">
+      <div class="sd-title">ESG Score History (12 Months)</div>
+      <div style="height:140px;position:relative;"><canvas id="supChart"></canvas></div>
+    </div>
+    <!-- SCORE BREAKDOWN -->
+    <div class="sd-card">
+      <div class="sd-title">Pillar Scores</div>
+      <div class="rings" id="supRings"></div>
+    </div>
+    <!-- AUDIT TIMELINE -->
+    <div class="sd-card" style="grid-column:1/3;">
+      <div class="sd-title">Audit & Assessment Timeline</div>
+      <div class="timeline" id="supTimeline"></div>
+    </div>
+  </div>
+  <!-- CAP CARDS -->
+  <div class="panel">
+    <div class="ph"><span class="ph-title">Corrective Action Plan Items</span></div>
+    <div style="padding:14px;"><div class="cap-full" id="supCaps"></div></div>
+  </div>
+</div>
+
+<!-- ========== PAGE 3: ONBOARDING SIMULATOR ========== -->
+<div class="page" id="page-onboarding">
+  <div class="onboard-wrap">
+    <h2>Supplier Onboarding Simulator</h2>
+    <p>Simulate the ESG risk assessment for a new supplier following the OECD Step 02 methodology. Fill in the supplier profile to generate an automatic risk score and recommended actions.</p>
+
+    <div class="form-grid">
+      <div class="form-group">
+        <label class="form-label">Supplier Name</label>
+        <input class="form-input" id="f-name" placeholder="e.g. Acme Components Ltd." />
+      </div>
+      <div class="form-group">
+        <label class="form-label">Country of Operation</label>
+        <select class="form-select" id="f-country">
+          <option value="">Select country...</option>
+          <option value="cn">China</option>
+          <option value="in">India</option>
+          <option value="de">Germany</option>
+          <option value="dk">Denmark</option>
+          <option value="us">United States</option>
+          <option value="mx">Mexico</option>
+          <option value="cd">DR Congo</option>
+          <option value="bd">Bangladesh</option>
+          <option value="vn">Vietnam</option>
+          <option value="br">Brazil</option>
+          <option value="tr">Turkey</option>
+          <option value="pl">Poland</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Industry Sector</label>
+        <select class="form-select" id="f-sector">
+          <option value="">Select sector...</option>
+          <option value="mining">Mining & Raw Materials</option>
+          <option value="mfg">Manufacturing / Assembly</option>
+          <option value="electronics">Electronics</option>
+          <option value="textiles">Textiles & Apparel</option>
+          <option value="chemicals">Chemicals</option>
+          <option value="logistics">Logistics & Transport</option>
+          <option value="services">Business Services</option>
+          <option value="construction">Construction</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Supply Chain Tier</label>
+        <select class="form-select" id="f-tier">
+          <option value="1">Tier 1 — Direct supplier</option>
+          <option value="2">Tier 2 — Supplier's supplier</option>
+          <option value="3">Tier 3 — Deeper chain</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Annual Spend (EUR)</label>
+        <select class="form-select" id="f-spend">
+          <option value="low">&lt; €100k</option>
+          <option value="mid">€100k – €1M</option>
+          <option value="high">&gt; €1M</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Existing ESG Certification</label>
+        <select class="form-select" id="f-cert">
+          <option value="none">None</option>
+          <option value="iso">ISO 14001 / ISO 45001</option>
+          <option value="sa8000">SA8000</option>
+          <option value="ecovadis">EcoVadis Gold/Silver</option>
+          <option value="multiple">Multiple certifications</option>
+        </select>
+      </div>
+      <div class="form-group full">
+        <label class="form-label">Known Issues / Context (optional)</label>
+        <input class="form-input" id="f-issues" placeholder="e.g. Recent labor dispute reported, no environmental policy on file..." />
+      </div>
+    </div>
+    <button class="btn-primary" onclick="runAssessment()" style="font-size:12px;padding:10px 20px;">▶ Run ESG Risk Assessment</button>
+
+    <div class="risk-result" id="riskResult">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">
+        <h3 style="font-family:var(--font-h);font-size:16px;font-weight:700;" id="rr-title">Risk Assessment Result</h3>
+        <span id="rr-overall" style="font-family:var(--font-h);font-size:22px;font-weight:800;"></span>
+      </div>
+      <p style="font-size:11px;color:var(--muted);margin-bottom:12px;" id="rr-desc"></p>
+      <div class="rr-grid" id="rr-grid"></div>
+      <div style="font-size:10px;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);margin-bottom:8px;">Recommended Actions</div>
+      <div class="rr-flags" id="rr-flags"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ========== PAGE 4: AUDIT READINESS ========== -->
+<div class="page" id="page-audit">
+  <div class="audit-wrap">
+    <h2>CSDDD Audit Readiness</h2>
+    <p>Self-assessment checklist against EU Corporate Sustainability Due Diligence Directive requirements. Check items as completed to track overall readiness score.</p>
+
+    <div class="audit-score-big">
+      <div class="audit-circle">
+        <svg width="90" height="90" viewBox="0 0 90 90">
+          <circle cx="45" cy="45" r="38" fill="none" stroke="var(--border2)" stroke-width="6"/>
+          <circle cx="45" cy="45" r="38" fill="none" stroke="var(--green)" stroke-width="6"
+            stroke-dasharray="0 239" stroke-linecap="round"
+            transform="rotate(-90 45 45)" id="auditArc"/>
+        </svg>
+        <div class="audit-pct" id="auditPct" style="position:absolute;">0%</div>
+      </div>
+      <div class="audit-info">
+        <h3 id="auditTitle">Readiness Score</h3>
+        <p id="auditDesc">Check items below to update your CSDDD readiness score. Green = complete, amber = partial, red = action required.</p>
+      </div>
+    </div>
+
+    <div class="audit-sections" id="auditSections"></div>
+  </div>
+</div>
+
+<!-- ========== PAGE 5: EXPORT ========== -->
+<div class="page" id="page-export">
+  <div class="export-wrap">
+    <h2>Export & Reporting</h2>
+    <p>Generate compliance-ready reports for internal stakeholders, auditors, and regulatory submissions.</p>
+
+    <div class="export-grid">
+      <div class="export-card" onclick="genReport('risk')">
+        <div class="export-icon">📊</div>
+        <h3>Supplier Risk Register</h3>
+        <p>Full supplier list with ESG scores, risk ratings, CAP status, and regional breakdown. Suitable for internal audit and procurement review.</p>
+        <button class="btn-primary">Generate Report</button>
+      </div>
+      <div class="export-card" onclick="genReport('csddd')">
+        <div class="export-icon">📋</div>
+        <h3>CSDDD Readiness Report</h3>
+        <p>Compliance gap analysis against EU Corporate Sustainability Due Diligence Directive requirements, with action roadmap.</p>
+        <button class="btn-primary">Generate Report</button>
+      </div>
+      <div class="export-card" onclick="genReport('oecd')">
+        <div class="export-icon">🔍</div>
+        <h3>OECD Due Diligence Summary</h3>
+        <p>Status report for each of the 6 OECD steps — what has been implemented, outstanding gaps, and KPIs per step.</p>
+        <button class="btn-primary">Generate Report</button>
+      </div>
+      <div class="export-card" onclick="genReport('cap')">
+        <div class="export-icon">⚡</div>
+        <h3>CAP Status Report</h3>
+        <p>All active and recently closed corrective action plans, with deadlines, responsible parties, and remediation progress.</p>
+        <button class="btn-primary">Generate Report</button>
+      </div>
+    </div>
+
+    <div id="pdfPreview"></div>
+  </div>
+</div>
+
+<div class="tooltip" id="tooltip"></div>
+
+<script>
+// ============ DATA ============
+const suppliers = [
+  {id:0,name:'Vestas Nacelle Ltd.',region:'Denmark',tier:'T1',sector:'Manufacturing',score:88,risk:'low',status:'active',e:85,s:90,g:89,cap:false,
+   history:[72,75,78,80,84,86,87,88,88,87,88,88],
+   timeline:[
+     {date:'Mar 2026',event:'Annual ESG re-assessment — Score 88',type:'green'},
+     {date:'Nov 2025',event:'ISO 14001 recertification confirmed',type:'green'},
+     {date:'Jun 2025',event:'Supplier audit — No findings',type:'green'},
+     {date:'Jan 2025',event:'Onboarding ESG assessment — Score 72',type:'blue'},
+   ],caps:[]},
+  {id:1,name:'Guangdong Metal Works',region:'China',tier:'T2',sector:'Mining & Metals',score:41,risk:'high',status:'flagged',e:38,s:35,g:50,cap:true,
+   history:[55,52,50,48,45,44,43,41,41,40,41,41],
+   timeline:[
+     {date:'Feb 2026',event:'CAP issued — Labor standards breach',type:'red'},
+     {date:'Dec 2025',event:'Audit — 4 major findings identified',type:'red'},
+     {date:'Jul 2025',event:'Re-assessment — score dropped to 44',type:'amber'},
+     {date:'Mar 2025',event:'Initial onboarding assessment — Score 55',type:'blue'},
+   ],
+   caps:[
+     {title:'Labor Standards — Excessive overtime documented',due:'30 days',progress:10,severity:'danger'},
+     {title:'Health & Safety — Missing protective equipment',due:'45 days',progress:30,severity:'danger'},
+     {title:'Environmental — No waste management policy',due:'60 days',progress:50,severity:'warn'},
+   ]},
+  {id:2,name:'Tata Steel India',region:'India',tier:'T2',sector:'Manufacturing',score:57,risk:'medium',status:'review',e:52,s:60,g:59,cap:true,
+   history:[50,52,53,54,55,56,57,57,56,57,57,57],
+   timeline:[
+     {date:'Mar 2026',event:'CAP follow-up — 60% progress',type:'amber'},
+     {date:'Jan 2026',event:'CAP issued — Environmental discharge',type:'amber'},
+     {date:'Sep 2025',event:'On-site audit completed',type:'blue'},
+   ],
+   caps:[{title:'Environmental Discharge — River contamination risk',due:'60 days',progress:60,severity:'warn'}]},
+  {id:3,name:'Nordic Composites AS',region:'Norway',tier:'T1',sector:'Manufacturing',score:91,risk:'low',status:'active',e:93,s:89,g:91,cap:false,
+   history:[82,83,85,86,87,88,89,90,90,91,91,91],
+   timeline:[
+     {date:'Feb 2026',event:'Score upgraded to 91 — Best in category',type:'green'},
+     {date:'Oct 2025',event:'EcoVadis Gold certification',type:'green'},
+   ],caps:[]},
+  {id:4,name:'Meridian Plastics GmbH',region:'Germany',tier:'T1',sector:'Chemicals',score:63,risk:'medium',status:'review',e:60,s:70,g:59,cap:true,
+   history:[60,61,60,62,62,63,63,63,63,63,63,63],
+   timeline:[
+     {date:'Jan 2026',event:'REACH compliance CAP opened',type:'amber'},
+     {date:'Aug 2025',event:'Desktop review completed',type:'blue'},
+   ],
+   caps:[{title:'REACH Compliance — Missing substance declarations',due:'90 days',progress:25,severity:'warn'}]},
+  {id:5,name:'Shenzen Electronics',region:'China',tier:'T3',sector:'Electronics',score:72,risk:'medium',status:'active',e:70,s:68,g:78,cap:false,
+   history:[60,62,64,65,67,68,70,71,71,72,72,72],
+   timeline:[
+     {date:'Mar 2026',event:'CAP closed — Data privacy resolved',type:'green'},
+     {date:'Nov 2025',event:'CAP issued — Data privacy alignment',type:'amber'},
+   ],caps:[]},
+  {id:6,name:'Atlas Rare Minerals',region:'DR Congo',tier:'T3',sector:'Mining',score:29,risk:'high',status:'flagged',e:22,s:28,g:37,cap:true,
+   history:[40,38,36,33,31,30,29,29,28,29,29,29],
+   timeline:[
+     {date:'Feb 2026',event:'Critical: Conflict mineral risk flagged',type:'red'},
+     {date:'Nov 2025',event:'Emergency assessment triggered',type:'red'},
+     {date:'Jun 2025',event:'Onboarding — Score 40',type:'blue'},
+   ],
+   caps:[
+     {title:'Conflict Minerals — No Chain of Custody documentation',due:'15 days',progress:5,severity:'danger'},
+     {title:'Child Labor — Risk identified in supply area',due:'30 days',progress:0,severity:'danger'},
+   ]},
+  {id:7,name:'Iberwind Components',region:'Spain',tier:'T2',sector:'Manufacturing',score:76,risk:'low',status:'active',e:78,s:75,g:75,cap:false,
+   history:[68,69,70,71,72,73,74,75,75,76,76,76],
+   timeline:[
+     {date:'Jan 2026',event:'Annual re-assessment — Score 76',type:'green'},
+     {date:'Jun 2025',event:'Supplier audit — 1 minor finding',type:'amber'},
+   ],caps:[]},
+  {id:8,name:'Poznan Steel Works',region:'Poland',tier:'T2',sector:'Manufacturing',score:54,risk:'medium',status:'review',e:50,s:55,g:57,cap:false,
+   history:[48,49,50,51,52,52,53,53,54,54,54,54],
+   timeline:[
+     {date:'Feb 2026',event:'Assessment in progress',type:'blue'},
+   ],caps:[]},
+];
+
+// ============ OECD DATA ============
+const oecdData = [
+  {
+    title:'Embed Responsible Business Conduct into Policies',
+    desc:'Establish and communicate a company policy commitment to responsible business conduct, including human rights, labour rights, and environmental standards. This is the foundation of all due diligence activity.',
+    actions:[
+      'Develop & publish an RBC Policy Statement signed by C-suite',
+      'Integrate RBC commitments into all supplier contracts',
+      'Align procurement procedures with OECD Guidelines',
+      'Train procurement & sourcing staff on policy application',
+    ],
+    kpis:[{lbl:'Policy Coverage',val:'100%',c:'var(--green)'},{lbl:'Suppliers Notified',val:'247',c:'var(--green)'},{lbl:'Staff Trained',val:'94%',c:'var(--green)'}]
+  },
+  {
+    title:'Identify Actual & Potential Adverse Impacts',
+    desc:'Map and assess actual and potential negative impacts across the supply chain — covering human rights, labour, environment, governance and anti-corruption — using risk-based prioritisation.',
+    actions:[
+      'Conduct country & sector risk mapping via third-party platforms',
+      'Issue supplier self-assessment questionnaires (SAQs)',
+      'Prioritise high-risk suppliers for deeper assessment or audit',
+      'Document all findings in the Supplier Risk Register',
+    ],
+    kpis:[{lbl:'SAQs Issued',val:'247',c:'var(--blue)'},{lbl:'High Risk ID\'d',val:'18',c:'var(--red)'},{lbl:'Pending Review',val:'12',c:'var(--amber)'}]
+  },
+  {
+    title:'Cease, Prevent & Mitigate Adverse Impacts',
+    desc:'Take appropriate action to stop causing or contributing to adverse impacts. This includes corrective action plans, contractual leverage, capacity building, and supplier engagement.',
+    actions:[
+      'Issue Corrective Action Plans (CAPs) for non-compliant suppliers',
+      'Set clear deadlines and assign accountability for each item',
+      'Engage suppliers with capacity building & remediation support',
+      'Escalate critical cases to Procurement leadership',
+    ],
+    kpis:[{lbl:'Active CAPs',val:'9',c:'var(--red)'},{lbl:'Closed CAPs YTD',val:'23',c:'var(--green)'},{lbl:'Avg. Days to Close',val:'47d',c:'var(--amber)'}]
+  },
+  {
+    title:'Track Implementation & Results',
+    desc:'Monitor whether due diligence measures are being implemented and producing results. Use KPIs, follow-up assessments, and audit outcomes to verify progress and identify gaps.',
+    actions:[
+      'Schedule CAP follow-up reviews at 30/60/90-day intervals',
+      'Update supplier ESG scores after remediation verification',
+      'Track KPIs: % high-risk suppliers with CAPs, audit closure rate',
+      'Report quarterly progress to Sustainable Procurement leadership',
+    ],
+    kpis:[{lbl:'KPIs Tracked',val:'14',c:'var(--blue)'},{lbl:'CAPs On-Track',val:'78%',c:'var(--amber)'},{lbl:'Audits Done',val:'31',c:'var(--green)'}]
+  },
+  {
+    title:'Communicate How Impacts Are Addressed',
+    desc:'Disclose information about supply chain due diligence processes, findings and outcomes to stakeholders. This supports trust, accountability, and regulatory compliance including CSRD reporting.',
+    actions:[
+      'Publish annual Responsible Sourcing report aligned with CSRD',
+      'Disclose due diligence approach in transparency statements',
+      'Share audit outcomes with relevant internal stakeholders',
+      'Respond to investor and customer ESG data requests',
+    ],
+    kpis:[{lbl:'CSRD Alignment',val:'82%',c:'var(--green)'},{lbl:'Reports Published',val:'3',c:'var(--blue)'},{lbl:'Disclosures Pending',val:'2',c:'var(--amber)'}]
+  },
+  {
+    title:'Provide for or Cooperate in Remediation',
+    desc:'When adverse impacts are identified that the company caused or contributed to, provide or cooperate in legitimate remediation — including grievance mechanisms for affected stakeholders.',
+    actions:[
+      'Maintain an accessible grievance mechanism for workers & communities',
+      'Cooperate in remediation efforts with impacted stakeholders',
+      'Document all remediation cases and outcomes',
+      'Verify remediation is effective and proportionate',
+    ],
+    kpis:[{lbl:'Grievances Filed',val:'4',c:'var(--amber)'},{lbl:'Resolved YTD',val:'3',c:'var(--green)'},{lbl:'Avg. Response',val:'12d',c:'var(--blue)'}]
+  }
+];
+
+// ============ AUDIT DATA ============
+const auditSections = [
+  {title:'Due Diligence Policy & Governance',items:[
+    {text:'Board-level responsibility for DD assigned',note:'Required by Art. 5 CSDDD',state:'done'},
+    {text:'Written human rights & environment DD policy published',note:'',state:'done'},
+    {text:'Policy integrated into supplier contracts',note:'',state:'done'},
+    {text:'Annual review of DD policy documented',note:'',state:'partial'},
+  ]},
+  {title:'Risk Identification & Assessment',items:[
+    {text:'Risk mapping across all direct suppliers (Tier 1)',note:'',state:'done'},
+    {text:'Risk mapping extended to Tier 2 suppliers',note:'Priority for CSDDD',state:'partial'},
+    {text:'Country & sector risk profiles maintained',note:'',state:'done'},
+    {text:'SAQ process for new supplier onboarding',note:'',state:'done'},
+    {text:'Third-party platform for ongoing monitoring',note:'e.g. EcoVadis, Sedex',state:'done'},
+  ]},
+  {title:'Prevention & Mitigation',items:[
+    {text:'Corrective Action Plan (CAP) process documented',note:'',state:'done'},
+    {text:'CAP tracking system in place',note:'',state:'done'},
+    {text:'Supplier capacity building programme active',note:'',state:'partial'},
+    {text:'Contractual ESG clauses in all new contracts',note:'',state:'done'},
+    {text:'Escalation process for critical non-conformances',note:'',state:'partial'},
+  ]},
+  {title:'Monitoring & Tracking',items:[
+    {text:'ESG KPIs formally defined and tracked',note:'',state:'done'},
+    {text:'Quarterly reporting to senior management',note:'',state:'done'},
+    {text:'Audit programme for high-risk suppliers',note:'',state:'partial'},
+    {text:'Performance targets set for supplier ESG scores',note:'',state:'missing'},
+  ]},
+  {title:'Disclosure & Communication',items:[
+    {text:'Annual responsible sourcing report published',note:'CSRD requirement',state:'done'},
+    {text:'CSRD-aligned double materiality assessment',note:'',state:'partial'},
+    {text:'Climate transition plan disclosed',note:'Art. 22 CSDDD',state:'missing'},
+    {text:'Grievance mechanism publicly accessible',note:'',state:'done'},
+  ]},
+  {title:'Remediation',items:[
+    {text:'Grievance mechanism operational & accessible',note:'',state:'done'},
+    {text:'Remediation cases tracked and documented',note:'',state:'partial'},
+    {text:'Effectiveness review of remediation actions',note:'',state:'missing'},
+  ]},
+];
+
+// ============ STATE ============
+let currentFilter = 'all';
+let sortKey = 'score';
+let sortDir = -1;
+let selectedSup = null;
+let currentSupId = 1;
+let auditStates = {};
+let trendChartInst = null;
+let supChartInst = null;
+
+// ============ INIT ============
+function init() {
+  updateTimestamp();
+  setInterval(updateTimestamp, 30000);
+  renderOECD(0);
+  renderTable();
+  renderRings({e:0,s:0,g:0}, 'rings', 'selName', '← Click a supplier');
+  renderRegions();
+  renderTrendChart();
+  populateSupSelect();
+  loadSupplier(1);
+  renderAudit();
+}
+
+function updateTimestamp() {
+  const n = new Date();
+  document.getElementById('ts').textContent =
+    n.toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'}) + ' · ' +
+    n.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});
+}
+
+// ============ NAV ============
+function showPage(id, btn) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('page-'+id).classList.add('active');
+  btn.classList.add('active');
+}
+
+// ============ OECD ============
+function renderOECD(idx) {
+  const d = oecdData[idx];
+  document.getElementById('oecdContent').innerHTML = `
+    <div>
+      <h3>Step 0${idx+1} — ${d.title}</h3>
+      <p>${d.desc}</p>
+      <div class="oecd-actions">${d.actions.map(a=>`<div class="oecd-action">${a}</div>`).join('')}</div>
+    </div>
+    <div class="oecd-kpis">
+      ${d.kpis.map(k=>`
+        <div class="oecd-kpi-row">
+          <span class="oecd-kpi-label">${k.lbl}</span>
+          <span class="oecd-kpi-val" style="color:${k.c}">${k.val}</span>
+        </div>
+      `).join('')}
+    </div>
+  `;
+}
+
+function setStep(idx, el) {
+  document.querySelectorAll('.oecd-step').forEach(s=>s.classList.remove('active'));
+  el.classList.add('active');
+  renderOECD(idx);
+}
+
+// ============ TABLE ============
+function getColor(s){return s>=75?'var(--green)':s>=50?'var(--amber)':'var(--red)';}
+
+function renderTable() {
+  let rows = [...suppliers];
+  if (currentFilter==='high') rows = rows.filter(s=>s.risk==='high');
+  else if (currentFilter==='medium') rows = rows.filter(s=>s.risk==='medium');
+  else if (currentFilter==='cap') rows = rows.filter(s=>s.cap);
+  rows.sort((a,b)=>{
+    let av=a[sortKey],bv=b[sortKey];
+    if(typeof av==='string') return sortDir*(av.localeCompare(bv));
+    return sortDir*(av-bv);
+  });
+  document.getElementById('tblBody').innerHTML = rows.map(s=>`
+    <tr onclick="selectSup(${s.id},this)" class="${selectedSup===s.id?'sel':''}">
+      <td><div class="sup-name">${s.name}</div><div class="sup-meta">${s.sector}${s.cap?' · ⚠ CAP':''}</div></td>
+      <td style="color:var(--muted)">${s.region} · ${s.tier}</td>
+      <td><div class="sbar"><div class="strack"><div class="sfill" style="width:${s.score}%;background:${getColor(s.score)}"></div></div><span style="color:${getColor(s.score)};font-family:var(--font-h);font-weight:700;font-size:13px">${s.score}</span></div></td>
+      <td><span class="risk-tag ${s.risk}">${s.risk}</span></td>
+      <td><span class="sdot ${s.status}"></span></td>
+    </tr>
+  `).join('');
+}
+
+function filterTbl(f, btn) {
+  currentFilter = f;
+  document.querySelectorAll('.ph-actions .btn-sm').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  renderTable();
+}
+
+function sortTbl(k) {
+  if(sortKey===k) sortDir*=-1; else {sortKey=k;sortDir=-1;}
+  renderTable();
+}
+
+function selectSup(id, row) {
+  selectedSup = id;
+  document.querySelectorAll('tbody tr').forEach(r=>r.classList.remove('sel'));
+  row.classList.add('sel');
+  const s = suppliers[id];
+  renderRings(s, 'rings', 'selName', `${s.name} · Overall: ${s.score}/100`);
+}
+
+// ============ RINGS ============
+function renderRings(s, containerId, labelId, labelText) {
+  const pillars = [
+    {lbl:'Environment',val:s.e,c:'var(--green)'},
+    {lbl:'Social',val:s.s,c:'var(--blue)'},
+    {lbl:'Governance',val:s.g,c:'var(--purple)'},
+  ];
+  const r=24, circ=2*Math.PI*r;
+  document.getElementById(containerId).innerHTML = pillars.map(p=>{
+    const dash=(p.val/100)*circ;
+    return `<div class="ring-item">
+      <svg width="64" height="64" viewBox="0 0 64 64">
+        <circle cx="32" cy="32" r="${r}" fill="none" stroke="var(--border2)" stroke-width="4"/>
+        <circle cx="32" cy="32" r="${r}" fill="none" stroke="${p.c}" stroke-width="4"
+          stroke-dasharray="${dash.toFixed(1)} ${circ.toFixed(1)}"
+          stroke-linecap="round" transform="rotate(-90 32 32)"/>
+        <text x="32" y="36" text-anchor="middle" fill="${p.c}"
+          style="font-family:var(--font-h);font-size:13px;font-weight:800">${p.val||'—'}</text>
+      </svg>
+      <div class="ring-lbl">${p.lbl}</div>
+    </div>`;
+  }).join('');
+  if(labelId) document.getElementById(labelId).textContent = labelText;
+}
+
+// ============ REGIONS ============
+function renderRegions() {
+  const regions = [
+    {name:'Europe',total:98,high:4,c:'var(--green)'},
+    {name:'China / APAC',total:72,high:8,c:'var(--amber)'},
+    {name:'South Asia',total:41,high:4,c:'var(--amber)'},
+    {name:'Africa / ME',total:22,high:2,c:'var(--red)'},
+    {name:'Americas',total:14,high:0,c:'var(--green)'},
+  ];
+  document.getElementById('regionList').innerHTML = regions.map(r=>`
+    <div class="reg-row">
+      <div class="reg-hdr">
+        <span class="reg-name">${r.name}</span>
+        <span class="reg-stats">${r.total} · <span style="color:${r.high>5?'var(--red)':r.high>2?'var(--amber)':'var(--green)'}">${r.high} high</span></span>
+      </div>
+      <div class="reg-track"><div class="reg-fill" style="width:${(r.total/98)*100}%;background:${r.c};opacity:0.7"></div></div>
+    </div>
+  `).join('');
+}
+
+// ============ TREND CHART ============
+function renderTrendChart() {
+  const ctx = document.getElementById('trendChart').getContext('2d');
+  const months = ['Oct','Nov','Dec','Jan','Feb','Mar'];
+  if(trendChartInst) trendChartInst.destroy();
+  trendChartInst = new Chart(ctx, {
+    type:'line',
+    data:{
+      labels:months,
+      datasets:[
+        {label:'Environmental',data:[62,65,67,70,72,75],borderColor:'#00e676',backgroundColor:'rgba(0,230,118,0.1)',tension:0.4,pointRadius:3,borderWidth:2},
+        {label:'Social',data:[58,61,60,63,65,67],borderColor:'#29b6f6',backgroundColor:'rgba(41,182,246,0.1)',tension:0.4,pointRadius:3,borderWidth:2},
+        {label:'Governance',data:[70,70,72,71,74,74],borderColor:'#ce93d8',backgroundColor:'rgba(206,147,216,0.1)',tension:0.4,pointRadius:3,borderWidth:2},
+      ]
+    },
+    options:{
+      responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},tooltip:{backgroundColor:'#0e1410',borderColor:'#1c2b20',borderWidth:1,titleColor:'#deeee5',bodyColor:'#5a7a63',titleFont:{family:'DM Mono'},bodyFont:{family:'DM Mono'}}},
+      scales:{
+        x:{grid:{color:'rgba(28,43,32,0.5)'},ticks:{color:'#5a7a63',font:{family:'DM Mono',size:10}}},
+        y:{grid:{color:'rgba(28,43,32,0.5)'},ticks:{color:'#5a7a63',font:{family:'DM Mono',size:10}},min:50,max:85}
+      }
+    }
+  });
+}
+
+// ============ SUPPLIER DETAIL PAGE ============
+function populateSupSelect() {
+  const sel = document.getElementById('supSelect');
+  sel.innerHTML = suppliers.map(s=>`<option value="${s.id}">${s.name}</option>`).join('');
+}
+
+function loadSupplier(id) {
+  id = parseInt(id);
+  currentSupId = id;
+  document.getElementById('supSelect').value = id;
+  const s = suppliers[id];
+  document.getElementById('supDetailName').textContent = s.name;
+  document.getElementById('supDetailMeta').textContent = `${s.region} · ${s.tier} · ${s.sector} · ${s.risk.charAt(0).toUpperCase()+s.risk.slice(1)} Risk${s.cap?' · CAP Active':''}`;
+  renderRings(s,'supRings',null,null);
+  renderSupChart(s);
+  // Timeline
+  document.getElementById('supTimeline').innerHTML = s.timeline.map(t=>`
+    <div class="tl-item">
+      <div class="tl-left">
+        <div class="tl-dot" style="background:${t.type==='green'?'var(--green)':t.type==='red'?'var(--red)':t.type==='amber'?'var(--amber)':'var(--blue)'}"></div>
+        <div class="tl-line"></div>
+      </div>
+      <div class="tl-content">
+        <div class="tl-event">${t.event}</div>
+        <div class="tl-date">${t.date}</div>
+      </div>
+    </div>
+  `).join('');
+  // CAPs
+  if(s.caps.length===0){
+    document.getElementById('supCaps').innerHTML = '<div style="color:var(--muted);font-size:11px;padding:4px 0;">No active corrective action plans.</div>';
+  } else {
+    document.getElementById('supCaps').innerHTML = s.caps.map(c=>`
+      <div class="cap-card">
+        <div class="cap-card-hdr">
+          <div class="cap-card-title">${c.title}</div>
+          <span class="risk-tag ${c.severity==='danger'?'high':'medium'}">Due: ${c.due}</span>
+        </div>
+        <div style="font-size:10px;color:var(--muted)">Remediation progress: ${c.progress}%</div>
+        <div class="cap-prog-bar"><div class="cap-prog-fill" style="width:${c.progress}%;background:${c.severity==='danger'?'var(--red)':'var(--amber)'}"></div></div>
+      </div>
+    `).join('');
+  }
+}
+
+function renderSupChart(s) {
+  const ctx = document.getElementById('supChart').getContext('2d');
+  const months=['Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec','Jan','Feb','Mar'];
+  if(supChartInst) supChartInst.destroy();
+  supChartInst = new Chart(ctx,{
+    type:'line',
+    data:{
+      labels:months,
+      datasets:[{
+        label:'Overall ESG',data:s.history,
+        borderColor:getColor(s.score).replace('var(','').replace(')','').includes('green')?'#00e676':s.score>=50?'#ffab00':'#ff3d3d',
+        backgroundColor:'rgba(0,230,118,0.05)',
+        tension:0.4,pointRadius:3,borderWidth:2,fill:true
+      }]
+    },
+    options:{
+      responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},tooltip:{backgroundColor:'#0e1410',borderColor:'#1c2b20',borderWidth:1,titleColor:'#deeee5',bodyColor:'#5a7a63',titleFont:{family:'DM Mono'},bodyFont:{family:'DM Mono'}}},
+      scales:{
+        x:{grid:{color:'rgba(28,43,32,0.5)'},ticks:{color:'#5a7a63',font:{family:'DM Mono',size:10}}},
+        y:{grid:{color:'rgba(28,43,32,0.5)'},ticks:{color:'#5a7a63',font:{family:'DM Mono',size:10}},min:0,max:100}
+      }
+    }
+  });
+}
+
+// ============ ONBOARDING ============
+const countryRisk={cn:65,in:55,de:10,dk:5,us:15,mx:45,cd:90,bd:75,vn:60,br:40,tr:50,pl:20};
+const sectorRisk={mining:80,mfg:40,electronics:55,textiles:70,chemicals:60,logistics:30,services:15,construction:45};
+
+function runAssessment() {
+  const name=document.getElementById('f-name').value||'New Supplier';
+  const country=document.getElementById('f-country').value;
+  const sector=document.getElementById('f-sector').value;
+  const tier=parseInt(document.getElementById('f-tier').value);
+  const spend=document.getElementById('f-spend').value;
+  const cert=document.getElementById('f-cert').value;
+  if(!country||!sector){alert('Please select country and sector.');return;}
+
+  const cr=countryRisk[country]||50;
+  const sr=sectorRisk[sector]||50;
+  const tierMult=tier===1?1:tier===2?1.1:1.2;
+  const spendMult=spend==='high'?1.15:spend==='mid'?1.05:1;
+  const certDisc=cert==='multiple'?20:cert==='ecovadis'?15:cert==='sa8000'?12:cert==='iso'?8:0;
+
+  const rawRisk=Math.min(100,Math.round(((cr*0.45+sr*0.45+10)*tierMult*spendMult)-certDisc));
+  const eScore=Math.max(10,100-Math.round(rawRisk*0.9+Math.random()*10));
+  const sScore=Math.max(10,100-Math.round(rawRisk*0.85+Math.random()*10));
+  const gScore=Math.max(10,100-Math.round(rawRisk*0.75+Math.random()*10));
+  const overall=Math.round((eScore+sScore+gScore)/3);
+  const risk=rawRisk>=65?'high':rawRisk>=35?'medium':'low';
+  const riskColor=risk==='high'?'var(--red)':risk==='medium'?'var(--amber)':'var(--green)';
+
+  const flags=[];
+  if(cr>=70) flags.push({type:'red',text:`High-risk country (score: ${cr}/100) — enhanced due diligence required`});
+  if(sr>=60) flags.push({type:'red',text:`High-risk sector (${sector}) — potential for severe adverse impacts`});
+  if(tier>=2) flags.push({type:'amber',text:`Tier ${tier} supplier — limited visibility, recommend audit or SAQ`});
+  if(cert==='none') flags.push({type:'amber',text:'No ESG certification — issue self-assessment questionnaire immediately'});
+  if(spend==='high') flags.push({type:'amber',text:'High spend category — leverage for contractual ESG clause inclusion'});
+  if(cert==='ecovadis'||cert==='multiple') flags.push({type:'green',text:'Valid ESG certification reduces inherent risk — verify scope and currency'});
+  if(overall>=70) flags.push({type:'green',text:'Overall score above threshold — standard monitoring cycle applicable'});
+  else flags.push({type:'red',text:'Score below threshold — corrective action plan may be required within 30 days'});
+
+  const res=document.getElementById('riskResult');
+  document.getElementById('rr-title').textContent=`Risk Assessment: ${name}`;
+  document.getElementById('rr-overall').innerHTML=`<span style="color:${riskColor}">${risk.toUpperCase()} RISK</span>`;
+  document.getElementById('rr-desc').textContent=`Composite risk score based on country exposure (${cr}/100), sector risk (${sr}/100), supply chain tier, spend level, and certification status. This assessment corresponds to OECD Step 02 — adverse impact identification.`;
+  document.getElementById('rr-grid').innerHTML=[
+    {lbl:'Overall Score',val:overall,c:riskColor},
+    {lbl:'Environment',val:eScore,c:'var(--green)'},
+    {lbl:'Social',val:sScore,c:'var(--blue)'},
+    {lbl:'Governance',val:gScore,c:'var(--purple)'},
+  ].map(k=>`<div class="rr-card"><div class="rr-val" style="color:${k.c}">${k.val}</div><div class="rr-lbl">${k.lbl}</div></div>`).join('');
+  document.getElementById('rr-flags').innerHTML=flags.map(f=>`<div class="rr-flag ${f.type}">→ ${f.text}</div>`).join('');
+  res.classList.add('show');
+}
+
+// ============ AUDIT ============
+function renderAudit() {
+  const el=document.getElementById('auditSections');
+  el.innerHTML=auditSections.map((sec,si)=>{
+    const score=Math.round((sec.items.filter(i=>{
+      const k=`${si}-${sec.items.indexOf(i)}`;
+      const st=auditStates[k]||i.state;
+      return st==='done';
+    }).length+sec.items.filter(i=>{
+      const k=`${si}-${sec.items.indexOf(i)}`;
+      const st=auditStates[k]||i.state;
+      return st==='partial';
+    }).length*0.5)/sec.items.length*100);
+    return `<div class="audit-section">
+      <div class="audit-sec-hdr">
+        <span class="audit-sec-title">${sec.title}</span>
+        <span class="audit-sec-score" style="color:${score>=75?'var(--green)':score>=50?'var(--amber)':'var(--red)'}">${score}%</span>
+      </div>
+      <div class="audit-items">
+        ${sec.items.map((item,ii)=>{
+          const k=`${si}-${ii}`;
+          const st=auditStates[k]||item.state;
+          const icon=st==='done'?'✓':st==='partial'?'~':'✗';
+          return `<div class="audit-item" onclick="cycleAudit('${k}',this)">
+            <div class="audit-chk ${st}" id="achk-${k}">${icon}</div>
+            <div>
+              <div class="audit-item-text">${item.text}</div>
+              ${item.note?`<div class="audit-item-note">${item.note}</div>`:''}
+            </div>
+          </div>`;
+        }).join('')}
+      </div>
+    </div>`;
+  }).join('');
+  updateAuditScore();
+}
+
+function cycleAudit(k, row) {
+  const cur=auditStates[k]||'missing';
+  const next={missing:'done',done:'partial',partial:'missing'};
+  auditStates[k]=next[cur];
+  renderAudit();
+}
+
+function updateAuditScore() {
+  let done=0,partial=0,total=0;
+  auditSections.forEach((sec,si)=>{
+    sec.items.forEach((item,ii)=>{
+      const k=`${si}-${ii}`;
+      const st=auditStates[k]||item.state;
+      if(st==='done') done++;
+      else if(st==='partial') partial+=0.5;
+      total++;
+    });
+  });
+  const pct=Math.round((done+partial)/total*100);
+  const circ=2*Math.PI*38;
+  document.getElementById('auditArc').setAttribute('stroke-dasharray',`${(pct/100*circ).toFixed(1)} ${circ.toFixed(1)}`);
+  document.getElementById('auditArc').setAttribute('stroke',pct>=75?'#00e676':pct>=50?'#ffab00':'#ff3d3d');
+  document.getElementById('auditPct').textContent=pct+'%';
+  document.getElementById('auditPct').style.color=pct>=75?'var(--green)':pct>=50?'var(--amber)':'var(--red)';
+  document.getElementById('auditTitle').textContent=pct>=75?'On Track for CSDDD':pct>=50?'Partial Readiness':'Action Required';
+}
+
+// ============ EXPORT ============
+const reportTemplates = {
+  risk:{
+    title:'Supplier Risk Register Report',
+    sub:'Generated: '+new Date().toLocaleDateString('en-GB',{day:'2-digit',month:'long',year:'numeric'})+' · Confidential — Internal Use',
+    content:()=>`
+      <div class="pdf-section">
+        <h3>Executive Summary</h3>
+        <p style="font-size:11px;color:var(--muted);line-height:1.7">Total suppliers monitored: <strong style="color:var(--text)">247</strong> · High risk: <strong style="color:var(--red)">18</strong> · Active CAPs: <strong style="color:var(--amber)">9</strong> · Average ESG score: <strong style="color:var(--green)">68/100</strong></p>
+      </div>
+      <div class="pdf-section">
+        <h3>Supplier Risk Register</h3>
+        <table class="pdf-table">
+          <thead><tr><th>Supplier</th><th>Region</th><th>ESG Score</th><th>Risk Level</th><th>CAP</th></tr></thead>
+          <tbody>${suppliers.map(s=>`<tr><td>${s.name}</td><td>${s.region}</td><td style="color:${getColor(s.score)}">${s.score}</td><td><span class="risk-tag ${s.risk}">${s.risk}</span></td><td>${s.cap?'<span style="color:var(--amber)">Active</span>':'—'}</td></tr>`).join('')}</tbody>
+        </table>
+      </div>
+    `
+  },
+  csddd:{
+    title:'CSDDD Readiness Gap Analysis',
+    sub:'Prepared for Board Review · Q1 2026',
+    content:()=>`
+      <div class="pdf-section">
+        <h3>Overall Readiness: 74%</h3>
+        <p style="font-size:11px;color:var(--muted);line-height:1.7">Assessment against EU Corporate Sustainability Due Diligence Directive (2024/1760). Enforcement expected 2027 for large companies. 4 gaps identified requiring immediate action.</p>
+      </div>
+      <div class="pdf-section">
+        <h3>Gap Summary</h3>
+        ${auditSections.map(sec=>`
+          <div style="margin-bottom:10px;"><strong style="font-size:11px">${sec.title}</strong>
+          ${sec.items.filter(i=>i.state!=='done').map(i=>`<div style="font-size:10px;color:var(--muted);padding:3px 0 3px 12px;">→ ${i.state==='partial'?'[PARTIAL] ':'[MISSING] '}${i.text}</div>`).join('')}
+          </div>
+        `).join('')}
+      </div>
+    `
+  },
+  oecd:{
+    title:'OECD 6-Step Due Diligence Status',
+    sub:'Q1 2026 · Responsible Sourcing & Compliance',
+    content:()=>`
+      <div class="pdf-section">
+        <h3>Framework Implementation Status</h3>
+        ${oecdData.map((step,i)=>`
+          <div style="margin-bottom:12px;padding:10px;background:var(--surface2);border-radius:4px;border:1px solid var(--border)">
+            <div style="font-family:var(--font-h);font-size:12px;font-weight:700;color:var(--green);margin-bottom:4px">Step 0${i+1} — ${step.title}</div>
+            <div style="display:flex;gap:16px;font-size:10px;">
+              ${step.kpis.map(k=>`<span><span style="color:var(--muted)">${k.lbl}: </span><strong style="color:${k.c}">${k.val}</strong></span>`).join('')}
+            </div>
+          </div>
+        `).join('')}
+      </div>
+    `
+  },
+  cap:{
+    title:'Corrective Action Plan Status Report',
+    sub:'Q1 2026 · Procurement Compliance',
+    content:()=>`
+      <div class="pdf-section">
+        <h3>Active CAPs (9 Open)</h3>
+        ${suppliers.filter(s=>s.cap&&s.caps.length>0).map(s=>`
+          <div style="margin-bottom:10px;">
+            <div style="font-family:var(--font-h);font-size:12px;font-weight:700;color:var(--text);margin-bottom:5px">${s.name} — ${s.region}</div>
+            ${s.caps.map(c=>`<div style="font-size:10px;padding:6px 10px;background:var(--surface2);border-radius:3px;margin-bottom:4px;border-left:2px solid ${c.severity==='danger'?'var(--red)':'var(--amber)'}">
+              <strong>${c.title}</strong><br>
+              <span style="color:var(--muted)">Due in ${c.due} · Progress: ${c.progress}%</span>
+            </div>`).join('')}
+          </div>
+        `).join('')}
+      </div>
+    `
+  }
+};
+
+function genReport(type) {
+  const t=reportTemplates[type];
+  const el=document.getElementById('pdfPreview');
+  el.innerHTML=`
+    <div class="pdf-header">
+      <h2>${t.title}</h2>
+      <p>${t.sub}</p>
+    </div>
+    ${t.content()}
+    <div style="margin-top:20px;padding-top:12px;border-top:1px solid var(--border);font-size:10px;color:var(--muted);display:flex;justify-content:space-between;">
+      <span>ESG Supply Chain Due Diligence Dashboard · Portfolio Project</span>
+      <span>Confidential — Internal Use Only</span>
+    </div>
+  `;
+  el.classList.add('show');
+  el.scrollIntoView({behavior:'smooth',block:'start'});
+}
+
+// ============ START ============
+init();
+renderOECD(0);
+</script>
+</body>
+</html>
