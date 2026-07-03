@@ -89,7 +89,7 @@ It was built as a portfolio project targeting roles in responsible sourcing, ESG
 
 ## Project Context
 
-Built as a portfolio project for a **Supply Chain Due Diligence Specialist** application at Vestas Wind Systems. The dashboard reflects real workflows described in the role — supplier onboarding ESG assessment, CAP follow-up, regulatory readiness, and audit preparation.
+Aligned with real-world responsible sourcing workflows. 
 
 ---
 
